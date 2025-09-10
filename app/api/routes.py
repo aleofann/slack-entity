@@ -11,7 +11,6 @@ def test_owner():
     task = owner_task.delay(owner_name)
     return jsonify({
         "status": "Submited",
-        'task_id': "task.id"
     }), 202
 
 @events_bp.route('/', methods=["POST"])
