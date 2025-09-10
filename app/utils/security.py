@@ -6,7 +6,7 @@ import os
 
 def verify_slack_signature(request):
     """
-    Проверяет, что входящий запрос действительно пришел от Slack.
+    Check slack signature
     """
     signing_secret = os.environ.get('SLACK_SECRET')
     if not signing_secret:
