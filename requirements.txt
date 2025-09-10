@@ -1,0 +1,6 @@
+Flask
+celery
+slack_sdk
+python-dotenv
+motor
+pymongo
