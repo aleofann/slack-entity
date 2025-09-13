@@ -82,3 +82,7 @@ config.json
 # Results (your CSV, etc.)
 results/
 *.csv
+
+# Logs
+*.log
+logs/

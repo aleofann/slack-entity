@@ -14,3 +14,4 @@ class Config:
     SLACK_SECRET = os.environ.get('SLACK_SECRET')
     SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL')
     
+    

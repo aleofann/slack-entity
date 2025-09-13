@@ -5,12 +5,9 @@ import time
 import os
 
 def verify_slack_signature(request):
-    """
-    Check slack signature
-    """
     signing_secret = os.environ.get('SLACK_SECRET')
     if not signing_secret:
-        print("WARN: SLACK_SECRET не установлен. Проверка подписи пропущена.")
+        print("WARN: SLACK_SECRET not found. Secret check skipped")
         return True
 
     timestamp = request.headers.get('X-Slack-Request-Timestamp')

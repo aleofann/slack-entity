@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response, current_app
 from app.clients import mongo_clients_async, slack_clients
 from app.tasks.reports import owner_task
+from app.tasks.file_tasks import process_file
 from app.utils.security import verify_slack_signature
 
 
@@ -57,8 +58,13 @@ def slack_event():
             return make_response("", 200)
 
         if event.get("type") == "file_shared":
-            print(event["file_id"])
-            # some_function.delay()
+            user_id = event.get("user_id")
+            file_id = event.get("file_id")
+
+            if user_id == 'U076B5REWM9':
+                return jsonify({"status": "ok"}), 200
+    
+            process_file.delay(file_id, current_app.config.get('SLACK_CHANNEL'), user_id)
 
     return jsonify({"status": "ok"}), 200
 
