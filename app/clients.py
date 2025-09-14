@@ -1,10 +1,8 @@
 import os
-import json
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 from slack_sdk.web import WebClient
 import requests
-from app.utils.parsers import read_from_json, load_template
 import logging
 
 log = logging.getLogger(__name__)

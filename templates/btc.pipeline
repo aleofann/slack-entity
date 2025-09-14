@@ -1,0 +1,36 @@
+[
+    {
+        "$match": {
+            "address": ""
+        }
+    },
+    {
+        "$lookup": {
+            "from": "_clusters",
+            "localField": "cluster",
+            "foreignField": "cluster",
+            "as": "clus"
+        }
+    },
+    
+    {
+        "$project": {
+            "_id": 0,
+            "address": 1,
+            "owner": {"$ifNull": ["$owner", ""]},
+            "description": {"$ifNull": ["$description", ""]},
+            "adr_tag": {"$ifNull": ["$tags", ""]},
+            "adr_type": {"$ifNull": ["$type", ""]},
+            "cluster": {"$ifNull": ["$cluster", ""]},
+            "c_owner": {"$ifNull": [{"$arrayElemAt": ["$clus.owner", 0] }, ""]},
+            "c_descr": {"$ifNull": [{"$arrayElemAt": ["$clus.description", 0] }, ""]},
+            "c_type": {"$ifNull": [{"$arrayElemAt": ["$clus.type", 0] }, ""]},
+            "c_tag": {"$ifNull": ["$clus.tag", ""]},
+            "count_adr": {"$ifNull": [{"$arrayElemAt": ["$clus.addressCount", 0]}, ""]},
+            "contract": "",
+            "txCount": {"$ifNull": ["$txCount", ""]},
+            "amountReceived": "",
+            "balance": ""
+        }
+    }
+]

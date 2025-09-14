@@ -1,6 +1,8 @@
+import os
+import time
 from flask import Blueprint, request, jsonify, make_response, current_app
 from app.clients import mongo_clients_async, slack_clients
-from app.tasks.reports import owner_task
+from app.tasks.slash_commands import owner_task, entity_statystic
 from app.tasks.file_tasks import process_file
 from app.utils.security import verify_slack_signature
 
@@ -10,21 +12,35 @@ events_bp = Blueprint("events", __name__, url_prefix="/events")
 
 @slack_bp.route("/owner", methods=["POST"])
 def get_owner():
-    owner_name = request.form.get('text')
-    if not owner_name:
-        return jsonify({
-        "response_type": "ephemeral",
-        "text": (
-            ":warning:*Entity name can't be empty*\n"
-            "\nExample: /owner Binance"
-        )
-    }), 200
-
-    task = owner_task.delay(owner_name.strip())
+    user_name = request.form.get("user_name")
+    ts = int(time.time())
+    channel = current_app.config.get("SLACK_CHANNEL")
+    task = entity_statystic.delay(channel)
+    print(task)
+    print(task.__dict__)
     return jsonify({
         "response_type": "ephemeral",
-        "text": f"Gathering addresses of {owner_name}"
+        "text": f"Gathering addresses"
     }), 202
+    # db_owner_name = request.form.get("text")
+    
+    # if not db_owner_name:
+    #     return jsonify({
+    #     "response_type": "ephemeral",
+    #     "text": (
+    #         ":warning:*Entity name can't be empty*\n"
+    #         "\nExample: /owner Binance"
+    #     )
+    # }), 200
+
+    # user_name = request.form.get("user_name")
+    # ts = int(time.time())
+
+    # task = owner_task.delay(db_owner_name.strip(), user_name, ts, current_app.config.get("SLACK_CHANNEL"))
+    # return jsonify({
+    #     "response_type": "ephemeral",
+    #     "text": f"Gathering {db_owner_name} addresses"
+    # }), 202
 
 @slack_bp.route("/info", methods=["POST"])
 def info():
@@ -38,7 +54,7 @@ def info():
         )
     }), 200
 
-@events_bp.route('/', methods=["POST"])
+@events_bp.route("/", methods=["POST"])
 def slack_event():
     
     request_data = request.json
@@ -54,17 +70,17 @@ def slack_event():
     if "event" in request_data:
         event = request_data["event"]
 
-        if event.get('channel_id') != current_app.config.get('SLACK_CHANNEL'):
+        if event.get("channel_id") != current_app.config.get("SLACK_CHANNEL"):
             return make_response("", 200)
 
         if event.get("type") == "file_shared":
             user_id = event.get("user_id")
             file_id = event.get("file_id")
 
-            if user_id == 'U076B5REWM9':
+            if user_id == os.environ.get("SLACK_BOT_ID"):
                 return jsonify({"status": "ok"}), 200
     
-            process_file.delay(file_id, current_app.config.get('SLACK_CHANNEL'), user_id)
+            process_file.delay(file_id, current_app.config.get("SLACK_CHANNEL"), user_id)
 
     return jsonify({"status": "ok"}), 200
 

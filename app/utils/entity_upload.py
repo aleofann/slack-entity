@@ -9,7 +9,7 @@ from app.data_cache import (TAGS, TYPES, SERVICES, SYSTEMS,
 from app.utils.parsers import get_countries, parse_date
 from app.utils.decorators import exception_retry
 from app.models.schemas import Compliance, Contacts, Departments
-from app.constants import bool_map, COMMON_ENTITY
+from app.constants import BOOL_MAP, COMMON_ENTITY
 import requests 
 
 
@@ -126,10 +126,10 @@ def parse_document(reader):
         entity['data']['providedServices'] = [str(SERVICES.get(name.strip())) for name in main_info_row.get('Provided services', '').split(',') if SERVICES.get(name.strip() is not None)] 
         entity['data']['primaryOperationalRegions'] = get_countries(COUNTRIES_MAP, 'Primary operational regions', main_info_row)
         entity['data']['restrictedJurisdictions'] = get_countries(COUNTRIES_MAP, 'Restricted Jurisdictions', main_info_row)
-        entity['data']['isFiatCurrencyTrading'] = bool_map.get(main_info_row.get('Fiat currency trading', 'No'))
+        entity['data']['isFiatCurrencyTrading'] = BOOL_MAP.get(main_info_row.get('Fiat currency trading', 'No'))
         entity['data']['officeAddress'] = main_info_row.get('Office address')
         entity['data']['languages'] = [LANGUAGES_MAP.get(name.strip()) for name in main_info_row.get('Languages').split(',')] if main_info_row.get('Languages') else []
-        entity['data']['isPrivacyCoinsSupported'] = bool_map.get(main_info_row.get('Privacy coins supported flag', 'No'))
+        entity['data']['isPrivacyCoinsSupported'] = BOOL_MAP.get(main_info_row.get('Privacy coins supported flag', 'No'))
         entity['data']['socialNetworkLinks'] = [link.strip() for link in main_info_row.get('Social network links').split(',')]
         entity['data']['paymentSystems'] = [str(SYSTEMS.get(name.split())) for name in main_info_row.get('Payment systems').split(',')] if main_info_row.get('Payment systems') else []
 

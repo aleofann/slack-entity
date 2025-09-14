@@ -1,3 +1,4 @@
+import json
 import logging
 
 from app.clients import mongo_clients_sync
@@ -10,22 +11,21 @@ log = logging.getLogger(__name__)
 dir_path = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.dirname(dir_path)
 
-TAGS = {}
-TYPES = {}
-SERVICES = {}
-SYSTEMS = {}
-LANGUAGES_MAP = {}
-COUNTRIES_MAP = {}
+TAGS, TYPES, SERVICES, SYSTEMS = {}, {}, {}, {}
+LANGUAGES_MAP, COUNTRIES_MAP = {}, {}
 ENTITY_TEMPLATE = {}
+ETH_PIPELINE, BTC_PIPELINE = {}, {}
 
 def update_data_maps():
-    global TAGS, TYPES, SERVICES, SYSTEMS, LANGUAGES_MAP, COUNTRIES_MAP, ENTITY_TEMPLATE
+    global TAGS, TYPES, SERVICES, SYSTEMS, LANGUAGES_MAP, COUNTRIES_MAP, ENTITY_TEMPLATE, ETH_PIPELINE, BTC_PIPELINE
     
     log.info("Attempting to update data maps...")
     try:
         lang_path = os.path.join(PROJECT_ROOT, "templates", "lang.json")
         country_path = os.path.join(PROJECT_ROOT, "templates", "country.json")
         entity_path = os.path.join(PROJECT_ROOT, "templates", "entity.json")
+        btc_pipeline_path = os.path.join(PROJECT_ROOT, "templates", "btc.pipeline")
+        eth_pipeline_path = os.path.join(PROJECT_ROOT, "templates", "eth.pipeline")
 
         LANGUAGES_MAP = read_from_json(lang_path, "name", "name")
         COUNTRIES_MAP = read_from_json(country_path, 'name', 'code')
@@ -44,6 +44,8 @@ def update_data_maps():
         TYPES = {doc["name"]: doc["_id"] for doc in label_db[COMMON_TYPES].find({})}
         SERVICES = {doc["name"]: doc["_id"] for doc in entity_db[COMMON_SERVICE].find({})}
         SYSTEMS = {doc["systemName"]: doc["_id"] for doc in entity_db[COMMON_PAYMENT_SYSTEM].find({})}
+        BTC_PIPELINE = json.loads(open(btc_pipeline_path).read()) 
+        ETH_PIPELINE = json.loads(open(eth_pipeline_path).read()) 
             
         log.info("Data maps updated successfully.")
     except Exception as e:
