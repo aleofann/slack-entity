@@ -31,7 +31,6 @@ def create_entity(headers, data):
 def find_entity(db, entity_name):
     if not db or not entity_name:
         return None
-    
     try:
         entity = db[COMMON_ENTITY][COMMON_ENTITY].find_one({'owner': entity_name}, {'_id': 1, 'owner': 1, 'type': 1, 'tags': 1})
         return entity if entity else None

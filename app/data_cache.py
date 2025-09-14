@@ -23,7 +23,6 @@ def update_data_maps():
     
     log.info("Attempting to update data maps...")
     try:
-        # 1. Загрузка данных из файлов
         lang_path = os.path.join(PROJECT_ROOT, "templates", "lang.json")
         country_path = os.path.join(PROJECT_ROOT, "templates", "country.json")
         entity_path = os.path.join(PROJECT_ROOT, "templates", "entity.json")
