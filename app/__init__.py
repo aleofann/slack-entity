@@ -24,17 +24,28 @@ def create_app():
         main_logger.addHandler(file_handler)
 
         logging.info("App running")
-
+        
     # Celery init
     celery.conf.update(
         broker_url=app.config['CELERY_BROKER_URL'],
         result_backend=app.config['CELERY_RESULT_BACKEND']
     )
+    celery.conf.include = [
+        'app.tasks.reports',
+        'app.tasks.file_tasks',
+        'app.tasks.scheduled_procedures',
+    ]
+
     celery.conf.task_routes = {'app.tasks.*': {'queue': 'debug_queue'}}
     celery.conf.task_default_queue = 'debug_queue'
-    celery.conf.include = [
-        'app.tasks.reports'
-    ]
+    celery.conf.beat_schedule = {
+        'update-data-maps-every-hour': {
+            'task': 'update.data.maps',
+            'schedule': 3600.0,  # 1 час в секундах
+        },
+    }
+    from app.data_cache import update_data_maps
+    update_data_maps()
     
     # blueprints
     from .api.routes import events_bp, slack_bp 
