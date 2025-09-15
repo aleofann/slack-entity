@@ -2,7 +2,8 @@ import json
 import logging
 
 from app.clients import mongo_clients_sync
-from app.constants import COMMON_LABEL, COMMON_TAGS, COMMON_TYPES, COMMON_ENTITY, COMMON_PAYMENT_SYSTEM, COMMON_SERVICE
+from app.models.schemas import PaymentSystem
+from app.constants import COMMON_LABEL, COMMON_TAGS, COMMON_TYPES, COMMON_ENTITY, COMMON_PAYMENT_SYSTEM, COMMON_PAYMENT_METHOD, COMMON_SERVICE, COMMON_BANKS
 from app.utils.parsers import read_from_json, load_template
 import os
 
@@ -12,12 +13,13 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.dirname(dir_path)
 
 TAGS, TYPES, SERVICES, SYSTEMS = {}, {}, {}, {}
+PAYMENT_METHODS, SYSTEMS_FULL, BANKS = {}, {}, {}
 LANGUAGES_MAP, COUNTRIES_MAP = {}, {}
 ENTITY_TEMPLATE = {}
 ETH_PIPELINE, BTC_PIPELINE = {}, {}
 
 def update_data_maps():
-    global TAGS, TYPES, SERVICES, SYSTEMS, LANGUAGES_MAP, COUNTRIES_MAP, ENTITY_TEMPLATE, ETH_PIPELINE, BTC_PIPELINE
+    global TAGS, TYPES, SERVICES, SYSTEMS, LANGUAGES_MAP, COUNTRIES_MAP, ENTITY_TEMPLATE, ETH_PIPELINE, BTC_PIPELINE, PAYMENT_METHODS, SYSTEMS_FULL, BANKS
     
     log.info("Attempting to update data maps...")
     try:
@@ -44,6 +46,17 @@ def update_data_maps():
         TYPES = {doc["name"]: doc["_id"] for doc in label_db[COMMON_TYPES].find({})}
         SERVICES = {doc["name"]: doc["_id"] for doc in entity_db[COMMON_SERVICE].find({})}
         SYSTEMS = {doc["systemName"]: doc["_id"] for doc in entity_db[COMMON_PAYMENT_SYSTEM].find({})}
+        PAYMENT_METHODS = {doc['_id']: doc['name'] for doc in entity_db[COMMON_PAYMENT_METHOD].find({})}
+        SYSTEMS_FULL = {
+        doc['_id']: {
+                'systemName': doc.get('systemName', ''), 
+                'website': doc.get('website'), 
+                'paymentTypes': doc.get('paymentTypes'), 
+                'paymentMethods': [PAYMENT_METHODS.get(row) for row in doc.get('paymentMethods', {})],
+                'registrationGeography': doc.get('registrationGeography')
+        } 
+        for doc in entity_db[COMMON_PAYMENT_SYSTEM].find({})}
+        BANKS = {doc['_id']: {k:v for k,v in doc.items()} for doc in entity_db[COMMON_BANKS].find({})}
         BTC_PIPELINE = json.loads(open(btc_pipeline_path).read()) 
         ETH_PIPELINE = json.loads(open(eth_pipeline_path).read()) 
             

@@ -7,7 +7,7 @@ from app.constants import ETH_WALLETS, BTC_WALLETS
 from app.utils.owner_search import gather_by_owner
 from app.utils.slack_actions import send_message, upload_file
 from app.utils.entity_stat import entity_metric
-
+from app.utils.entity_download import export_entities_to_csv
 
 @celery.task(name="get.owner")
 def owner_task(owner_name, user_name, thread_ts, channel_id):
@@ -32,3 +32,11 @@ def entity_statystic(channel_id):
         f"*Entities without license but have description*: {descr_license}\n"
         f"*Total entities*: {total}\n")
     send_message(channel_id, message_text,thread_ts=None)
+
+@celery.task(name="entity.download")
+def gather_entity(channel_id, user_name):
+    local_filepath = os.path.join("temp_files", f"entities_{user_name}.csv")
+    export_entities_to_csv(local_filepath)
+    upload_file(channel_id, local_filepath, f"{user_name}_entity", "")
+    if local_filepath and os.path.exists(local_filepath):
+        os.remove(local_filepath)

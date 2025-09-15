@@ -1,9 +1,10 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler
 from flask import Flask
 from .config import Config
 from .celery_app import celery
+
 def create_app():
     
     # Create and configure Flask
@@ -48,8 +49,9 @@ def create_app():
     update_data_maps()
     
     # blueprints
-    from .api.routes import events_bp, slack_bp 
+    from .api.routes import events_bp, slack_bp, entity_bp
     app.register_blueprint(events_bp)
     app.register_blueprint(slack_bp)
+    app.register_blueprint(entity_bp)
 
     return app

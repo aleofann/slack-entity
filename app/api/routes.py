@@ -2,16 +2,27 @@ import os
 import time
 from flask import Blueprint, request, jsonify, make_response, current_app
 from app.clients import mongo_clients_async, slack_clients
-from app.tasks.slash_commands import owner_task, entity_statystic
+from app.tasks.slash_commands import owner_task, entity_statystic, gather_entity
 from app.tasks.file_tasks import process_file
 from app.utils.security import verify_slack_signature
 
 
 slack_bp = Blueprint("slack", __name__, url_prefix="/slack")
 events_bp = Blueprint("events", __name__, url_prefix="/events")
+entity_bp = Blueprint("entity", __name__, url_prefix="/entities")
 
-@slack_bp.route("/owner", methods=["POST"])
-def get_owner():
+@entity_bp.route("/collect-entities", methods=["POST"])
+def collect_entities():
+    user_name = request.form.get("user_name")
+    channel = current_app.config.get("SLACK_CHANNEL")
+    task = gather_entity.delay(channel, user_name)
+    return jsonify({
+        "response_type": "ephemeral",
+        "text": f"Gathering entities"
+    }), 202
+
+@entity_bp.route("/entity-stat", methods=["POST"])
+def entity_stat():
     user_name = request.form.get("user_name")
     ts = int(time.time())
     channel = current_app.config.get("SLACK_CHANNEL")
@@ -20,27 +31,30 @@ def get_owner():
     print(task.__dict__)
     return jsonify({
         "response_type": "ephemeral",
-        "text": f"Gathering addresses"
+        "text": f"Gathering stat"
     }), 202
-    # db_owner_name = request.form.get("text")
+
+@slack_bp.route("/owner", methods=["POST"])
+def get_owner():
+    db_owner_name = request.form.get("text")
     
-    # if not db_owner_name:
-    #     return jsonify({
-    #     "response_type": "ephemeral",
-    #     "text": (
-    #         ":warning:*Entity name can't be empty*\n"
-    #         "\nExample: /owner Binance"
-    #     )
-    # }), 200
+    if not db_owner_name:
+        return jsonify({
+        "response_type": "ephemeral",
+        "text": (
+            ":warning:*Entity name can't be empty*\n"
+            "\nExample: /owner Binance"
+        )
+    }), 200
 
-    # user_name = request.form.get("user_name")
-    # ts = int(time.time())
+    user_name = request.form.get("user_name")
+    ts = int(time.time())
 
-    # task = owner_task.delay(db_owner_name.strip(), user_name, ts, current_app.config.get("SLACK_CHANNEL"))
-    # return jsonify({
-    #     "response_type": "ephemeral",
-    #     "text": f"Gathering {db_owner_name} addresses"
-    # }), 202
+    task = owner_task.delay(db_owner_name.strip(), user_name, ts, current_app.config.get("SLACK_CHANNEL"))
+    return jsonify({
+        "response_type": "ephemeral",
+        "text": f"Gathering {db_owner_name} addresses"
+    }), 202
 
 @slack_bp.route("/info", methods=["POST"])
 def info():
@@ -84,4 +98,3 @@ def slack_event():
 
     return jsonify({"status": "ok"}), 200
 
-# celery -A celery_app.celery_app worker -l info -Q debug_queue -P solo --concurrency=2
