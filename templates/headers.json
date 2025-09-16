@@ -1,4 +1,0 @@
-{
-    "entity": ["Entity name", "Legal name", "Parent company / ownership", "Entity website", "Domiciled country", "Status", "Type", "Tag", "Description", "KYC", "Provided services", "Primary operational regions", "Restricted Jurisdictions", "Fiat currency trading", "Office address", "Languages", "Privacy coins supported flag", "Social network links", "Payment systems", "Country", "Local Authority", "License Number", "License Type", "License Link", "Registered Name", "Start Date", "Contact Name", "Position", "Contact Network Link", "Department Name", "Department Network Link"],
-    "labels": ["Address", "Chain"]
-}

@@ -48,7 +48,7 @@ def export_entities_to_csv(filepath: str = 'entities.csv'):
         'compliance_dates','compliance_status','compliance_licenseType','paymentSystems_systemName',
         'paymentSystems_website','paymentSystems_paymentTypes','paymentSystems_paymentMethods',
         'paymentSystems_registrationGeography','banks_bankName','banks_country','banks_holder',
-        'banks_accountNumber','banks_BIC','banks_IBAN','vision_link', 'has_wallet'
+        'banks_accountNumber','banks_BIC','banks_IBAN','vision_link',
     ]
 
     

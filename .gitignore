@@ -78,6 +78,8 @@ config.json
 *.env
 .env.local
 .env.*
+templates/*.pipeline
+
 
 # Results (your CSV, etc.)
 results/
