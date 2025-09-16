@@ -7,6 +7,29 @@ from app.data_cache import TAGS, TYPES, BANKS, SYSTEMS_FULL, SERVICES
 
 log = logging.getLogger(__name__)
 
+def parse_main_info(doc, tags, types, services):
+    return {
+    'name': doc.get('name'),
+    'owner': doc.get('owner'),
+    'legalName': doc.get('legalName'),
+    'type': types.get(doc.get('type')),
+    'tags': [tags.get(row) for row in doc.get('tags') if row] if doc.get('tags') else [],
+    'isActive': doc.get('isActive'),
+    'KYCStatus': doc.get('KYCStatus'),
+    'isFiatCurrencyTrading': doc.get('isFiatCurrencyTrading'),
+    'isPrivacyCoinsSupported': doc.get('isPrivacyCoinsSupported'),
+    'website': doc.get('website'),
+    'parentCompany': doc.get('isFiatCurrencyTrading'),
+    'domicileCountry': doc.get('domicileCountry'),
+    'status': doc.get('status'),
+    'description': doc.get('description'),
+    'officeAddress': doc.get('officeAddress'),
+    'providedServices': [services.get(row) for row in doc.get('providedServices')],
+    'primaryOperationalRegions': doc.get('primaryOperationalRegions'),
+    'restrictedJurisdictions': doc.get('restrictedJurisdictions'),
+    'languages': doc.get('languages'),
+    'socialNetworkLinks': doc.get('socialNetworkLinks'),
+    }
 
 def export_entities_to_csv(filepath: str = 'entities.csv'):
     
@@ -30,7 +53,7 @@ def export_entities_to_csv(filepath: str = 'entities.csv'):
 
     
     with open(filepath, 'w', encoding='utf-8', newline='') as entity_file:
-        writer = csv.DictWriter(entity_file, fieldnames=headers)
+        writer = csv.DictWriter(entity_file, fieldnames=headers, extrasaction='ignore')
         writer.writeheader()
         
         common_db_client = dbs.get("COMMON")
@@ -70,80 +93,54 @@ def export_entities_to_csv(filepath: str = 'entities.csv'):
         })
 
         for doc in cursor:
-            comp = {row[0]: row[1] for row in enumerate(doc['regulatoryCompliance'])}
-            syst = {row[0]: row[1] for row in enumerate(doc['paymentSystems'])}
-            banks = {row[0]: row[1] for row in enumerate(doc['banks'])}      
-            max_length = max(len(comp), len(syst), len(banks))
-            for i in range(0, max_length if max_length else 1):
-                parse_data(doc, comp, syst, banks, i, writer, reversed_tags, reversed_types, reversed_services)
-        
-def parse_data(doc, compliance, systems, banks, index, writer, tags, types, services):
-    c_country = compliance.get(index, {}).get('country')
-    c_localAuthority = compliance.get(index, {}).get('localAuthority')
-    c_licenseNumber = compliance.get(index, {}).get('licenseNumber')
-    c_licenseLink = compliance.get(index, {}).get('country')
-    c_registeredName = compliance.get(index, {}).get('registeredName')
-    c_dates = compliance.get(index, {}).get('dates', {}).get('from', {})
-    if c_dates:
-        c_dates=datetime.fromtimestamp(int(c_dates)/1000)
-    c_status = compliance.get(index, {}).get('status')
-    c_licenseType = compliance.get(index, {}).get('licenseType')
+            main_info = parse_main_info(doc, reversed_tags, reversed_types, reversed_services)
+            compliances = {row[0]: row[1] for row in enumerate(doc['regulatoryCompliance'])}
+            systems_ids = {row[0]: row[1] for row in enumerate(doc['paymentSystems'])}
+            banks_ids = {row[0]: row[1] for row in enumerate(doc['banks'])}
 
-    s_systemName = SYSTEMS_FULL.get(systems.get(index), {}).get('systemName')
-    s_website = SYSTEMS_FULL.get(systems.get(index), {}).get('website')
-    s_paymentTypes = SYSTEMS_FULL.get(systems.get(index), {}).get('paymentTypes')
-    s_paymentMethods = SYSTEMS_FULL.get(systems.get(index), {}).get('paymentMethods')
-    s_registrationGeography = SYSTEMS_FULL.get(systems.get(index), {}).get('registrationGeography')
+            if not any([compliances, systems_ids, banks_ids]):
+                writer.writerow(main_info)    
+                continue  
 
-    b_bankName = BANKS.get(banks.get(index), {}).get('bankName')
-    b_country = BANKS.get(banks.get(index), {}).get('country')
-    b_holder = BANKS.get(banks.get(index), {}).get('holder')
-    b_accountNumber = BANKS.get(banks.get(index), {}).get('accountNumber')
-    b_BIC = BANKS.get(banks.get(index), {}).get('BIC')
-    b_IBAN = BANKS.get(banks.get(index), {}).get('IBAN')
+            max_len = max(len(compliances), len(systems_ids), len(banks_ids))
+            for i in range(max_len):
+                info = main_info.copy()
 
-    writer.writerow({
-        'name': doc.get('name'),
-        'owner': doc.get('owner'),
-        'legalName': doc.get('legalName'),
-        'type': types.get(doc.get('type')),
-        'tags': [tags.get(row) for row in doc.get('tags') if row] if doc.get('tags') else [],
-        'isActive': doc.get('isActive'),
-        'KYCStatus': doc.get('KYCStatus'),
-        'isFiatCurrencyTrading': doc.get('isFiatCurrencyTrading'),
-        'isPrivacyCoinsSupported': doc.get('isPrivacyCoinsSupported'),
-        'website': doc.get('website'),
-        'parentCompany': doc.get('isFiatCurrencyTrading'),
-        'domicileCountry': doc.get('domicileCountry'),
-        'status': doc.get('status'),
-        'description': doc.get('description'),
-        'officeAddress': doc.get('officeAddress'),
-        'providedServices': [services.get(row) for row in doc.get('providedServices')],
-        'primaryOperationalRegions': doc.get('primaryOperationalRegions'),
-        'restrictedJurisdictions': doc.get('restrictedJurisdictions'),
-        'languages': doc.get('languages'),
-        'socialNetworkLinks': doc.get('socialNetworkLinks'),
-        # Regulatory Compliance info
-        'compliance_country': c_country,
-        'compliance_localAuthority': c_localAuthority, 
-        'compliance_licenseNumber': c_licenseNumber, 
-        'compliance_licenseLink': c_licenseLink, 
-        'compliance_registeredName': c_registeredName, 
-        'compliance_dates': c_dates,
-        'compliance_status': c_status, 
-        'compliance_licenseType': c_licenseType, 
-        # Payment system info
-        'paymentSystems_systemName': s_systemName,
-        'paymentSystems_website': s_website,
-        'paymentSystems_paymentTypes': s_paymentTypes,
-        'paymentSystems_paymentMethods': s_paymentMethods,
-        'paymentSystems_registrationGeography': s_registrationGeography,
-        # Banks info
-        'banks_bankName': b_bankName,
-        'banks_country': b_country,
-        'banks_holder': b_holder,
-        'banks_accountNumber': b_accountNumber,
-        'banks_BIC': b_BIC,
-        'banks_IBAN': b_IBAN,
-        'vision_link': f'https://vision.glprotocol.com/entity-explorer/view/{doc.get("_id")}',
-    })
+                if i < len(compliances):
+                    comp = compliances[i]
+                    date_from = comp.get('dates', {}).get('from')
+                    info.update({
+                        'compliance_country': comp.get('country'),
+                        'compliance_localAuthority': comp.get('localAuthority'),
+                        'compliance_licenseNumber': comp.get('licenseNumber'),
+                        'compliance_licenseLink': comp.get('licenseLink'),
+                        'compliance_registeredName': comp.get('registeredName'),
+                        'compliance_dates': datetime.fromtimestamp(int(date_from) / 1000).strftime('%Y-%m-%d') if date_from else '',
+                        'compliance_status': comp.get('status'),
+                        'compliance_licenseType': comp.get('licenseType'),
+                    })
+
+                if i < len(systems_ids):
+                    system_obj = SYSTEMS_FULL.get(systems_ids[i])
+                    if system_obj:
+                        info.update({
+                            'paymentSystems_systemName': system_obj.get('systemName'),
+                            'paymentSystems_website': system_obj.get('website'),
+                            'paymentSystems_paymentTypes': ", ".join(system_obj.get('paymentTypes') or []),
+                            'paymentSystems_paymentMethods': ", ".join(system_obj.get('paymentMethods') or []),
+                            'paymentSystems_registrationGeography': system_obj.get('registrationGeography'),
+                        })
+
+                if i < len(banks_ids):
+                    bank_obj = BANKS.get(banks_ids[i])
+                    if bank_obj:
+                        info.update({
+                            'banks_bankName': bank_obj.get('bankName'),
+                            'banks_country': bank_obj.get('country'),
+                            'banks_holder': bank_obj.get('holder'),
+                            'banks_accountNumber': bank_obj.get('accountNumber'),
+                            'banks_BIC': bank_obj.get('BIC'),
+                            'banks_IBAN': bank_obj.get('IBAN'),
+                        })
+                writer.writerow(info)
+                    
