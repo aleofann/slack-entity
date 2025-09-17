@@ -2,7 +2,6 @@ import asyncio
 import csv
 import os
 from copy import deepcopy
-from bson import ObjectId
 from collections import defaultdict
 from app.clients import mongo_clients_async as dbs
 from app.constants import EVM, BTC_WALLETS, ETH_WALLETS, ETH_TRANSACTIONS, CHAIN_MAP, USDT, ADDRESS_INFO_TEMPLATE, WRITER_LABEL_HEADER
