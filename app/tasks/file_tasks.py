@@ -14,13 +14,12 @@ slack_client = slack_clients.get("MAIN")
 
 @celery.task(name="process.file")
 def process_file(file_id: str, channel_id: str, user_id: str):
-
     try:
         
         file_info = get_file_info(slack_client, file_id)
         user_name = get_user_info(slack_client, user_id)
 
-        thread_ts = file_info.get("shares", {}).get("private", {}).get(channel_id, [{}])[0].get("ts", None)
+        thread_ts = file_info.get("shares", {}).get("public", {}).get(channel_id, [{}])[0].get("ts", None)
 
         if file_info.get("filetype") != "csv":
             send_message(channel_id, "The file must be in CSV format.", thread_ts)
@@ -45,9 +44,9 @@ def process_file(file_id: str, channel_id: str, user_id: str):
 
 
         if label_template.issubset(reader_headers):
-            send_message(channel_id, "Got a file for labels", thread_ts)
+            # send_message(channel_id, "Got a file for labels", thread_ts)
             r = asyncio.get_event_loop().run_until_complete(gather_labels(local_filepath, reader))
-            print(r)
+            # print(r)
             upload_file(channel_id, local_filepath, user_name, "", thread_ts)
 
         elif entity_template.issubset(reader_headers):

@@ -90,7 +90,8 @@ def slack_event():
         if event.get("type") == "file_shared":
             user_id = event.get("user_id")
             file_id = event.get("file_id")
-
+            # print(event)
+            # print(event.get("user_id"))
             if user_id == os.environ.get("SLACK_BOT_ID"):
                 return jsonify({"status": "ok"}), 200
     

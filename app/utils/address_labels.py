@@ -1,11 +1,30 @@
 import asyncio
 import csv
+import os
 from copy import deepcopy
 from bson import ObjectId
 from collections import defaultdict
 from app.clients import mongo_clients_async as dbs
 from app.constants import EVM, BTC_WALLETS, ETH_WALLETS, ETH_TRANSACTIONS, CHAIN_MAP, USDT, ADDRESS_INFO_TEMPLATE, WRITER_LABEL_HEADER
 from app.data_cache import BTC_PIPELINE, ETH_PIPELINE, TAGS, TYPES
+import logging
+
+
+os.makedirs("logs", exist_ok=True)
+
+logger = logging.getLogger("my_module_logger")
+logger.setLevel(logging.DEBUG)
+logger.propagate = False
+
+file_handler = logging.FileHandler("logs/my_module.log")
+file_handler.setLevel(logging.INFO)
+
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 semaphore = asyncio.BoundedSemaphore(45)
 
@@ -40,29 +59,32 @@ async def usdt_count(client, address, token):
 
 async def fetch_address(client, collection, address, chain):
     async with semaphore:
+        try:
+            pipe = deepcopy(ETH_PIPELINE if chain in EVM else BTC_PIPELINE)
+            pipe[0]["$match"]["address"] = address
 
-        pipe = deepcopy(ETH_PIPELINE if chain in EVM else BTC_PIPELINE)
-        pipe[0]["$match"]["address"] = address
+            result = await client[collection].aggregate(pipe, maxTimeMS=60000).to_list(None)
+            
+            if not result:
+                empty_template = deepcopy(ADDRESS_INFO_TEMPLATE)
+                empty_template[0].update({"address": address, "chain": chain, "usdt_txCount": "", "txCount": ""})
+                return empty_template
+            
+            adr_tags = [reversed_tags.get(row, "") for row in result[0]["adr_tag"]]
+            adr_type = reversed_types.get(result[0]["adr_type"])
+            c_tags = [reversed_tags.get(row, "") for row in result[0]["c_tag"]]
+            c_type = reversed_types.get(result[0]["c_type"])
+            result[0].update({"adr_tag": adr_tags, "adr_type": adr_type, "c_tag": c_tags, "c_type": c_type, "chain": chain})
 
-        result = await client[collection].aggregate(pipe, maxTimeMS=60000).to_list(None)
-        
-        if not result:
-            empty_template = deepcopy(ADDRESS_INFO_TEMPLATE)
-            empty_template[0].update({"address": address, "chain": chain, "usdt_txCount": "", "txCount": ""})
-            return empty_template
-        
-        adr_tags = [reversed_tags.get(ObjectId(row), "") for row in result[0]["adr_tag"]]
-        adr_type = reversed_types.get(ObjectId(result[0]["adr_type"]))
-        c_tags = [reversed_tags.get(row, "") for row in result[0]["c_tag"]]
-        c_type = reversed_types.get(result[0]["c_type"])
-        result[0].update({"adr_tag": adr_tags, "adr_type": adr_type, "c_tag": c_tags, "c_type": c_type, "chain": chain})
+            if chain in EVM:
+                tasks = [usdt_count(client, address, USDT[chain]), usdt_count(client, address, None)]
+                usdt_total, native_total = await asyncio.gather(*tasks)
+                result[0].update({"usdt_txCount": usdt_total, "txCount": native_total})
 
-        if chain in EVM:
-            tasks = [usdt_count(client, address, USDT[chain]), usdt_count(client, address, None)]
-            usdt_total, native_total = await asyncio.gather(*tasks)
-            result[0].update({"usdt_txCount": usdt_total, "txCount": native_total})
-
-        return result
+            return result
+        except Exception as e:
+            logger.info("Attempting to gather labels")
+            return e
 
 
 async def fetch_all(client, collection, addresses, chain):
@@ -75,6 +97,7 @@ async def fetch_all(client, collection, addresses, chain):
 
 async def gather_labels(filepath, reader):
     try:
+        logger.info("Attempting to gather labels")
         address_map = read_file(reader)
 
         tasks = []
@@ -86,7 +109,10 @@ async def gather_labels(filepath, reader):
                 collection = ETH_WALLETS
             tasks.append(asyncio.create_task(fetch_all(client, collection, addresses, chain)))
 
+        # print(address_map.items())
+        print('starting gathering')
         data = await asyncio.gather(*tasks)
+        print('finished gathering')
         
         with open(filepath, "w", encoding="utf-8", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=WRITER_LABEL_HEADER, extrasaction="ignore") 
@@ -95,6 +121,8 @@ async def gather_labels(filepath, reader):
             for array in data:
                 for elem in array:
                     writer.writerow(elem[0])
-            return 
+            return 200
     except Exception as e:
+        print(e)
+        logger.info(e)
         return e
